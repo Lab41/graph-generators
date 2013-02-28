@@ -2,27 +2,27 @@
 
 import sys
 
-def header():
+def header(type):
     # !! TODO
     print "header"
 
-def is_directed(directed):
+def is_directed(type, directed):
     # !! TODO
     print "directed or undirected"
 
-def create_node(num_nodes):
+def create_node(type, num_nodes):
     # !! TODO
     print "node"
 
-def create_edge(min, max, mini, mino, maxi, maxo):
+def create_edge(type, min, max, mini, mino, maxi, maxo):
     # !! TODO
     print "edge"
 
-def close_graph():
+def close_graph(type):
     # !! TODO
     print "close graph"
 
-def generate_graph():
+def generate_graph(type):
     # !! TODO
     print "generate graph"
 
@@ -35,6 +35,7 @@ def print_help():
     print "-mini <min in degree of nodes> (only used with directed flag, default is 1)"
     print "-mino <min out degree of nodes> (only used with directed flag, default is 1)"
     print "-d (directed, undirected by default)"
+    print "-t <output type> (graphml by default, options include gml and graphson)"
     sys.exit(0)
     
 def check_directed(directed, arg, value, flag):
@@ -57,6 +58,7 @@ def process_args(args):
     min = mini = mino = 1
     max = maxi = maxo= 10
     directed_num = -1
+    type = "graphml"
 
     # process whether it is directed or not
     i = 0
@@ -98,13 +100,20 @@ def process_args(args):
             maxi = check_directed(directed, maxi, args[i+1], 1)
         elif args[i] == "-maxo":
             maxo = check_directed(directed, maxo, args[i+1], 1)
+        elif args[i] == "-t":
+            try:
+                type = args[i+1]
+            except:
+                print_help()
         else:
             print_help()
         i += 2
     if max < min or maxi < mini or maxo < mino:
         print_help()
+    if type != "graphml" and type != "gml" and type != "graphson":
+        print_help()
 
-    return num_nodes, directed, min, max, mini, mino, maxi, maxo
+    return type, num_nodes, directed, min, max, mini, mino, maxi, maxo
 
 def get_args():
     args = []
@@ -114,5 +123,5 @@ def get_args():
 
 if __name__ == "__main__":
     args = get_args()
-    num_nodes, directed, min, max, mini, mino, maxi, maxo = process_args(args)
-    print num_nodes, directed, min, max, mini, mino, maxi, maxo
+    type, num_nodes, directed, min, max, mini, mino, maxi, maxo = process_args(args)
+    print type, num_nodes, directed, min, max, mini, mino, maxi, maxo
