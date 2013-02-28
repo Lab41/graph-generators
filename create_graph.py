@@ -10,11 +10,11 @@ def is_directed(type, directed):
     # !! TODO
     print "directed or undirected"
 
-def create_node(type, num_nodes):
+def create_node(type, num_nodes, node_attrs):
     # !! TODO
     print "node"
 
-def create_edge(type, min, max, mini, mino, maxi, maxo):
+def create_edge(type, min, max, mini, mino, maxi, maxo, edge_attrs):
     # !! TODO
     print "edge"
 
@@ -27,13 +27,15 @@ def generate_graph(type):
     print "generate graph"
 
 def print_help():
-    print "-n <num_of_nodes> (default is 1000)"
+    print "-n <num of nodes> (default is 1000)"
     print "-max <max degree of nodes> (only used with undirected, default is 10)"
     print "-min <min degree of nodes> (only used with undirected, default is 1)"
     print "-maxi <max in degree of nodes> (only used with directed flag, default is 10)"
     print "-maxo <max out degree of nodes> (only used with directed flag, default is 10)"
     print "-mini <min in degree of nodes> (only used with directed flag, default is 1)"
     print "-mino <min out degree of nodes> (only used with directed flag, default is 1)"
+    print "-na <num of node attributes> (default is 2)"
+    print "-ea <num of edge attributes> (default is 0)"
     print "-d (directed, undirected by default)"
     print "-t <output type> (graphml by default, options include gml and graphson)"
     sys.exit(0)
@@ -57,6 +59,8 @@ def process_args(args):
     directed = 0
     min = mini = mino = 1
     max = maxi = maxo= 10
+    node_attrs = 2
+    edge_attrs = 0
     directed_num = -1
     type = "graphml"
 
@@ -88,6 +92,20 @@ def process_args(args):
                     print_help()
             except:
                 print_help()
+        elif args[i] == "-na":
+            try:
+                node_attrs = int(args[i+1])
+                if node_attrs < 1:
+                    print_help()
+            except:
+                print_help()
+        elif args[i] == "-ea":
+            try:
+                edge_attrs = int(args[i+1])
+                if edge_attrs < 0:
+                    print_help()
+            except:
+                print_help()
         elif args[i] == "-max":
             max = check_directed(directed, max, args[i+1], 0)
         elif args[i] == "-min":
@@ -113,7 +131,7 @@ def process_args(args):
     if type != "graphml" and type != "gml" and type != "graphson":
         print_help()
 
-    return type, num_nodes, directed, min, max, mini, mino, maxi, maxo
+    return type, num_nodes, directed, min, max, mini, mino, maxi, maxo, node_attrs, edge_attrs
 
 def get_args():
     args = []
@@ -123,5 +141,5 @@ def get_args():
 
 if __name__ == "__main__":
     args = get_args()
-    type, num_nodes, directed, min, max, mini, mino, maxi, maxo = process_args(args)
-    print type, num_nodes, directed, min, max, mini, mino, maxi, maxo
+    type, num_nodes, directed, min, max, mini, mino, maxi, maxo, node_attrs, edge_attrs = process_args(args)
+    print type, num_nodes, directed, min, max, mini, mino, maxi, maxo, node_attrs, edge_attrs
