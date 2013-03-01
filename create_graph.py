@@ -1,19 +1,38 @@
 #!/usr/bin/python
 
-import sys, uuid
+import sys, time, uuid
+from random import randint, sample
 
 def output_file(file):
     fo = open(file, 'w')
     return fo
 
-def header(type, node_attrs, edge_attrs, fo):
+def header(type, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, fo):
     node_attrs_a = []
     edge_attrs_a = []
     if type == "graphml":
         header = "<?xml version=\"1.0\" ?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n"
         fo.write(header)
 
-        # !! TODO add keys for attr types for nodes and edges
+        # requiring 'name' attribute for nodes
+        node_attrs_a.append("name")
+
+        # randomly create other attributes
+        i = 0
+        while i < node_attrs_max-1:
+            node_attrs_a.append("node-type"+str(i))
+            i += 1
+        i = 0
+        while i < edge_attrs_max:
+            i += 1
+            edge_attrs_a.append("edge-type"+str(i))
+
+        for attr in node_attrs_a:
+            node_str = "    <key id=\""+attr+"\" for=\"node\" attr.name=\""+attr+"\" attr.type=\"string\"></key>\n"
+            fo.write(node_str)
+        for attr in edge_attrs_a:
+            edge_str = "    <key id=\""+attr+"\" for=\"edge\" attr.name=\""+attr+"\" attr.type=\"string\"></key>\n"
+            fo.write(edge_str)
 
     return node_attrs_a, edge_attrs_a
 
@@ -29,13 +48,39 @@ def is_directed(type, directed, fo):
 
     return graph_id
 
-def create_node(type, num_nodes, node_attrs, fo):
-    # !! TODO
-    print "node"
 
-def create_edge(type, min, max, mini, mino, maxi, maxo, edge_attrs, fo):
+# !! NOTE
+# create dictionaries of ids of nodes to keep track of how many degrees have been put on a particular node
+# output something that tells the average degree of each node
+
+
+def create_node(type, node, node_attrs_min, node_attrs_max, first_a, last_a, fo):
+    if type == "graphml":
+        node_str = "        <node id=\""+str(node)+"\">\n"
+        num_attrs = randint(node_attrs_min, node_attrs_max)
+        attrs_list = sample(xrange(node_attrs_max-1), node_attrs_max-1)
+        i = 0
+        while i < num_attrs:
+            if i == 0:
+                index = str(node)
+                if node < 10000:
+                    val1 = 0
+                    val2 = node
+                else:
+                    val1 = int(index[:-4])
+                    val2 = int(index[-4:])
+                node_str += "            <data key=\"name\">"+first_a[val1]+" "+last_a[val2]+"</data>\n"
+            else:
+                node_str += "            <data key=\"type"+str(attrs_list[i-1])+"\">"+str(uuid.uuid4())+"</data>\n"
+            i += 1
+        node_str += "        </node>\n"
+    fo.write(node_str)
+
+def create_edge(type, min, max, mini, mino, maxi, maxo, edge_attrs_min, edge_attrs_max, fo):
+
     # !! TODO
     print "edge"
+    #randint(min, max)
 
 def close_graph(type, fo):
     closer = ""
@@ -44,40 +89,72 @@ def close_graph(type, fo):
     fo.write(closer)
     fo.close()
 
-def generate_graph(type, file, num_nodes, directed, node_attrs, edge_attrs, min, max, mini, mino, maxi, maxo):
-    fo = output_file(file)
-    node_attrs_a, edge_attrs_a = header(type, node_attrs, edge_attrs, fo)
-    graph_id = is_directed(type, directed, fo)
+def get_names():
+    first_a = []
+    last_a = []
+    fname = open('dict/randomNames.csv', 'r')
+    for line in fname:
+        name = line.split(",")
+        first_a.append(name[0])
+        last_a.append(name[1])
+    fname.close()
+    return first_a, last_a
 
-    # !! TODO node creation
+def generate_graph(type, file, num_nodes, directed, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, min, max, mini, mino, maxi, maxo):
+    fo = output_file(file)
+    node_attrs_a, edge_attrs_a = header(type, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, fo)
+    graph_id = is_directed(type, directed, fo)
+    first_a, last_a = get_names()
+    
+    for node in range(num_nodes):
+        create_node(type, node, node_attrs_min, node_attrs_max, first_a, last_a, fo)
+
+    # !! HARD CODED list of labels (relationship types) for edges
+    directed_edge_labels = ["knows", "contacted", "manager_of", "works_for"]
+    undirected_edge_labels = ["knows", "connected", "acquainted", "friends", "family"]
+
     # !! TODO edge creation
 
     close_graph(type, fo)
+    return graph_id
 
 def print_help():
-    print "\n-n <num of nodes> (default is 1000)\n"
-    print "-max <max degree of nodes> (only used with undirected, default is 10)\n"
-    print "-min <min degree of nodes> (only used with undirected, default is 1)\n"
-    print "-maxi <max in degree of nodes> (only used with directed flag, default is 10)\n"
-    print "-maxo <max out degree of nodes> (only used with directed flag, default is 10)\n"
-    print "-mini <min in degree of nodes> (only used with directed flag, default is 1)\n"
-    print "-mino <min out degree of nodes> (only used with directed flag, default is 1)\n"
-    print "-na <num of node attributes> (default is 2)\n"
-    print "-ea <num of edge attributes> (default is 0)\n"
-    print "-d (directed, undirected by default)\n"
-    print "-t <output type> (graphml by default, options include gml and graphson)\n"
-    print "-o <path to output file> (default is 'graph')\n"
+    print "\n-n \t<num of nodes> (default is 1000, must be between 1 and 100,000,000)\n"
+    print "-max \t<max degree of nodes> (only used with undirected, default is 10)\n"
+    print "-min \t<min degree of nodes> (only used with undirected, default is 1)\n"
+    print "-maxi \t<max in degree of nodes> (only used with directed flag, default is 10)\n"
+    print "-maxo \t<max out degree of nodes> (only used with directed flag, default is 10)\n"
+    print "-mini \t<min in degree of nodes> (only used with directed flag, default is 1)\n"
+    print "-mino \t<min out degree of nodes> (only used with directed flag, default is 1)\n"
+    print "-minna \t<min num of node attributes> (default is 2, must be at least 1)\n"
+    print "-maxna \t<max num of node attributes> (default is 2)\n"
+    print "-minea \t<min num of edge attributes> (default is 0)\n"
+    print "-maxea \t<max num of edge attributes> (default is 0)\n"
+    print "-d \t(directed, undirected by default)\n"
+    print "-t \t<output type> (graphml by default, options include gml and graphson)\n"
+    print "-o \t<path to output file> (default is 'graph')\n"
+    print "-h \thelp\n"
     sys.exit(0)
     
-def check_directed(directed, arg, value, flag):
+def check_directed(directed, arg, args, i, flag):
     if directed == flag:
         try:
-            arg = int(value)
+            arg = int(args[i+1])
             if arg < 0:
                 print help()
         except:
             print_help()
     else:
+        print_help()
+
+    return arg
+
+def check_attrs(arg, args, i, flag):
+    try:
+        arg = int(args[i+1])
+        if arg < flag:
+            print_help()
+    except:
         print_help()
 
     return arg
@@ -88,8 +165,10 @@ def process_args(args):
     directed = 0
     min = mini = mino = 1
     max = maxi = maxo= 10
-    node_attrs = 2
-    edge_attrs = 0
+    node_attrs_min = 2
+    node_attrs_max = 2
+    edge_attrs_min = 0
+    edge_attrs_max = 0
     directed_num = -1
     type = "graphml"
     output = "graph"
@@ -118,36 +197,30 @@ def process_args(args):
         if args[i] == "-n":
             try:
                 num_nodes = int(args[i+1])
-                if num_nodes < 1:
+                if num_nodes < 1 or num_nodes > 100000000:
                     print_help()
             except:
                 print_help()
-        elif args[i] == "-na":
-            try:
-                node_attrs = int(args[i+1])
-                if node_attrs < 1:
-                    print_help()
-            except:
-                print_help()
-        elif args[i] == "-ea":
-            try:
-                edge_attrs = int(args[i+1])
-                if edge_attrs < 0:
-                    print_help()
-            except:
-                print_help()
+        elif args[i] == "-minna":
+            node_attrs_min = check_attrs(node_attrs_min, args, i, 1)
+        elif args[i] == "-maxna":
+            node_attrs_max = check_attrs(node_attrs_max, args, i, node_attrs_min)
+        elif args[i] == "-minea":
+            edge_attrs_min = check_attrs(edge_attrs_min, args, i, 0)
+        elif args[i] == "-maxea":
+            edge_attrs_max = check_attrs(edge_attrs_max, args, i, edge_attrs_min)
         elif args[i] == "-max":
-            max = check_directed(directed, max, args[i+1], 0)
+            max = check_directed(directed, max, args, i, 0)
         elif args[i] == "-min":
-            min = check_directed(directed, min, args[i+1], 0)
+            min = check_directed(directed, min, args, i, 0)
         elif args[i] == "-mini":
-            mini = check_directed(directed, mini, args[i+1], 1)
+            mini = check_directed(directed, mini, args, i, 1)
         elif args[i] == "-mino":
-            mino = check_directed(directed, mino, args[i+1], 1)
+            mino = check_directed(directed, mino, args, i, 1)
         elif args[i] == "-maxi":
-            maxi = check_directed(directed, maxi, args[i+1], 1)
+            maxi = check_directed(directed, maxi, args, i, 1)
         elif args[i] == "-maxo":
-            maxo = check_directed(directed, maxo, args[i+1], 1)
+            maxo = check_directed(directed, maxo, args, i, 1)
         elif args[i] == "-t":
             try:
                 type = args[i+1]
@@ -167,8 +240,10 @@ def process_args(args):
         print_help()
     if type != "graphml" and type != "gml" and type != "graphson":
         print_help()
+    if node_attrs_max < node_attrs_min or edge_attrs_max < edge_attrs_min:
+        print_help()
 
-    return type, output, num_nodes, directed, min, max, mini, mino, maxi, maxo, node_attrs, edge_attrs
+    return type, output, num_nodes, directed, min, max, mini, mino, maxi, maxo, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max
 
 def get_args():
     args = []
@@ -177,23 +252,29 @@ def get_args():
     return args[1:]
 
 if __name__ == "__main__":
+    start_time = time.time()
     args = get_args()
-    type, output, num_nodes, directed, min, max, mini, mino, maxi, maxo, node_attrs, edge_attrs = process_args(args)
+    type, output, num_nodes, directed, min, max, mini, mino, maxi, maxo, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max = process_args(args)
     print "Generating the following graph:"
-    print "\tType: \t\t\t",type
-    print "\tOutput File: \t\t",output
-    print "\tNodes: \t\t\t",num_nodes
+    print "\tType: \t\t\t\t",type
+    print "\tOutput File: \t\t\t",output
+    print "\tNodes: \t\t\t\t",num_nodes
     if directed == 0:
-        print "\tDirected: \t\tNo"
-        print "\tMinimum Degree: \t",min
-        print "\tMaximum Degree: \t",max
+        print "\tDirected: \t\t\tNo"
+        print "\tMinimum Degree: \t\t",min
+        print "\tMaximum Degree: \t\t",max
     else:
-        print "\tDirected: \t\tYes"
-        print "\tMinimum In Degree: \t",mini
-        print "\tMaximum In Degree: \t",maxi
-        print "\tMinimum Out Degree: \t",mino
-        print "\tMaximum Out Degree: \t",maxo
-    print "\tNode Attributes: \t",node_attrs
-    print "\tEdge Attributes: \t",edge_attrs 
+        print "\tDirected: \t\t\tYes"
+        print "\tMinimum In Degree: \t\t",mini
+        print "\tMaximum In Degree: \t\t",maxi
+        print "\tMinimum Out Degree: \t\t",mino
+        print "\tMaximum Out Degree: \t\t",maxo
+    print "\tMinimum Node Attributes: \t",node_attrs_min
+    print "\tMaximum Node Attributes: \t",node_attrs_max
+    print "\tMinimum Edge Attributes: \t",edge_attrs_min
+    print "\tMaximum Edge Attributes: \t",edge_attrs_max
     
-    generate_graph(type, output, num_nodes, directed, node_attrs, edge_attrs, min, max, mini, mino, maxi, maxo)
+    graph_id = generate_graph(type, output, num_nodes, directed, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, min, max, mini, mino, maxi, maxo)
+    
+    print "Graph ID = ",graph_id
+    print "Took",time.time() - start_time,"seconds to complete."
