@@ -323,7 +323,7 @@ def process_args(args):
         if args[i] == "-n":
             try:
                 num_nodes = int(args[i+1])
-                if num_nodes < 1 or num_nodes > 100000000:
+                if num_nodes < 1:
                     print_help()
             except:
                 print_help()
