@@ -90,12 +90,18 @@ def undirected_edge(source, num_nodes, num_edges, num_edge_attrs, undirected_nod
     while source == target or undirected_node_d[target] == max:
         target = randint(0, num_nodes-1)
         
-    i = 0; j = 0
-    while j < num_nodes:
-        # check against max
-        if undirected_node_d[j] < max and undirected_node_d[j] > min:
-            i += 1
-        j += 1
+    # !! NOTE this is a valid check to ensure that all nodes are in the correct range, 
+    #         but it degrades performance dramatically and causes the script to not scale.  
+    #         the overall impact of not doing this check should be nominal, and if strictly 
+    #         needed, it can be re-enabled by uncommented the following 6 lines and removing 
+    #         the 7th line.
+    #i = 0; j = 0
+    #while j < num_nodes:
+    #    # check against max
+    #    if undirected_node_d[j] < max and undirected_node_d[j] > min:
+    #        i += 1
+    #    j += 1
+    i = 0; j = 1
 
     if i != j:
         edge_str = "        <edge id=\""+str(num_nodes+num_edges)+"\" source=\""+str(source)+"\" target=\""+str(target)+"\" label=\""+str(undirected_edge_labels[randint(0, len(undirected_edge_labels)-1)])+"\">"
@@ -144,7 +150,7 @@ def create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, ed
             prev = -1
             while i < num_nodes:
                 percent_complete = percentage(i, num_nodes)
-                if percent_complete % 10 == 0 and prev != percent_complete:
+                if prev != percent_complete:
                     prev = percent_complete
                     print str(percent_complete)+"% finished"
                 source = i 
@@ -366,8 +372,11 @@ if __name__ == "__main__":
     
     graph_id, num_node_attrs, num_edge_attrs, num_edges = generate_graph(type, output, num_nodes, directed, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, min, max, mini, mino, maxi, maxo)
     
-    print "Graph ID = ",graph_id
-    print "Number of edges created = ",num_edges
-    print "Average number of node attributes = ",num_node_attrs
-    print "Average number of edge attributes = ",num_edge_attrs
+    print "Graph ID =",graph_id
+    print "Number of edges created =",num_edges
+    print "Average number of node attributes =",num_node_attrs/num_nodes
+    if num_edges != 0:
+        print "Average number of edge attributes =",num_edge_attrs/num_edges
+    else:
+        print "Average number of edge attributes = 0"
     print "Took",time.time() - start_time,"seconds to complete."
