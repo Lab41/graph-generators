@@ -54,11 +54,13 @@ def is_directed(type, directed, fo):
 # output something that tells the average degree of each node
 
 
-def create_node(type, node, node_attrs_min, node_attrs_max, first_a, last_a, fo):
+def create_node(type, node, node_attrs_min, node_attrs_max, num_node_attrs, first_a, last_a, fo):
     if type == "graphml":
         node_str = "        <node id=\""+str(node)+"\">\n"
         num_attrs = randint(node_attrs_min, node_attrs_max)
-        attrs_list = sample(xrange(node_attrs_max-1), node_attrs_max-1)
+        attrs_list = 0
+        if node_attrs_max != 0:
+            attrs_list = sample(xrange(node_attrs_max-1), node_attrs_max-1)
         i = 0
         while i < num_attrs:
             if i == 0:
@@ -70,17 +72,94 @@ def create_node(type, node, node_attrs_min, node_attrs_max, first_a, last_a, fo)
                     val1 = int(index[:-4])
                     val2 = int(index[-4:])
                 node_str += "            <data key=\"name\">"+first_a[val1]+" "+last_a[val2]+"</data>\n"
+                num_node_attrs += 1
             else:
                 node_str += "            <data key=\"type"+str(attrs_list[i-1])+"\">"+str(uuid.uuid4())+"</data>\n"
+                num_node_attrs += 1
             i += 1
         node_str += "        </node>\n"
     fo.write(node_str)
+    return num_node_attrs
 
-def create_edge(type, min, max, mini, mino, maxi, maxo, edge_attrs_min, edge_attrs_max, fo):
+def undirected_edge(source, num_nodes, num_edges, num_edge_attrs, undirected_node_d, min, max, edge_attrs_min, edge_attrs_max, fo):
+    # !! NOTE hard coded list of labels (relationship types) for edges
+    undirected_edge_labels = ["knows", "connected", "acquainted", "friends", "family"]
 
+    target = source
+    # don't create self-loops
+    while source == target or undirected_node_d[target] == max:
+        target = randint(0, num_nodes-1)
+        
+    i = 0; j = 0
+    while j < num_nodes:
+        # check against max
+        if undirected_node_d[j] < max and undirected_node_d[j] > min:
+            i += 1
+        j += 1
+
+    if i != j:
+        edge_str = "        <edge id=\""+str(num_nodes+num_edges)+"\" source=\""+str(source)+"\" target=\""+str(target)+"\" label=\""+str(undirected_edge_labels[randint(0, len(undirected_edge_labels)-1)])+"\">"
+        num_attrs = randint(edge_attrs_min, edge_attrs_max)
+        attrs_list = 0
+        if edge_attrs_max != 0:
+            attrs_list = sample(xrange(edge_attrs_max-1), edge_attrs_max-1)
+        k = 0
+        while k < num_attrs:
+            edge_str += "\n            <data key=\""+str(attrs_list[k-1])+"\">"+str(uuid.uuid4())+"</data>"
+            k += 1 
+            num_edge_attrs += 1
+        if k < 0:
+            edge_str += "\n        "
+        edge_str += "</edge>\n"
+        undirected_node_d[source] += 1
+        undirected_node_d[target] += 1
+        num_edges += 1
+        fo.write(edge_str)
+    return undirected_node_d, num_edges, num_edge_attrs
+
+def directed_edge():
     # !! TODO
-    print "edge"
-    #randint(min, max)
+    print "todo"
+    # !! NOTE hard coded list of labels (relationship types) for edges
+    directed_edge_labels = ["knows", "contacted", "manager_of", "works_for"]
+
+def create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, edge_attrs_min, edge_attrs_max, fo):
+    undirected_node_d = {}
+    directed_node_in_d = {}
+    directed_node_out_d = {}
+    num_edge_attrs = 0
+    num_edges = 0
+
+    i = 0
+    while i < num_nodes:
+        undirected_node_d[i] = 0
+        directed_node_in_d[i] = 0
+        directed_node_out_d[i] = 0
+        i += 1
+
+    if type == "graphml":
+        if num_nodes > 1:
+            i = 0
+            while i < num_nodes:
+                source = i 
+
+                if directed == 0:
+                    gen_edges = randint(min, max)
+                    j = 0
+                    while j < gen_edges:
+                        if undirected_node_d[source] < max: 
+                            undirected_node_d, num_edges, num_edge_attrs = undirected_edge(source, num_nodes, num_edges, num_edge_attrs, undirected_node_d, min, max, edge_attrs_min, edge_attrs_max, fo)
+                        else:
+                            undirected_node_d, num_edges, num_edge_attrs = undirected_edge(source, num_nodes, num_edges, num_edge_attrs, undirected_node_d, min, max, edge_attrs_min, edge_attrs_max, fo)
+                        j += 1
+                        print j
+                else:
+                    # check against mini, mino, maxi, and maxo
+                    junk = 1
+
+                i += 1
+
+    return num_edge_attrs, num_edges
 
 def close_graph(type, fo):
     closer = ""
@@ -106,17 +185,14 @@ def generate_graph(type, file, num_nodes, directed, node_attrs_min, node_attrs_m
     graph_id = is_directed(type, directed, fo)
     first_a, last_a = get_names()
     
+    num_node_attrs = 0
     for node in range(num_nodes):
-        create_node(type, node, node_attrs_min, node_attrs_max, first_a, last_a, fo)
+        num_node_attrs = create_node(type, node, node_attrs_min, node_attrs_max, num_node_attrs, first_a, last_a, fo)
 
-    # !! HARD CODED list of labels (relationship types) for edges
-    directed_edge_labels = ["knows", "contacted", "manager_of", "works_for"]
-    undirected_edge_labels = ["knows", "connected", "acquainted", "friends", "family"]
-
-    # !! TODO edge creation
+    num_edge_attrs, num_edges = create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, edge_attrs_min, edge_attrs_max, fo)
 
     close_graph(type, fo)
-    return graph_id
+    return graph_id, num_node_attrs, num_edge_attrs, num_edges
 
 def print_help():
     print "\n-n \t<num of nodes> (default is 1000, must be between 1 and 100,000,000)\n"
@@ -274,7 +350,10 @@ if __name__ == "__main__":
     print "\tMinimum Edge Attributes: \t",edge_attrs_min
     print "\tMaximum Edge Attributes: \t",edge_attrs_max
     
-    graph_id = generate_graph(type, output, num_nodes, directed, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, min, max, mini, mino, maxi, maxo)
+    graph_id, num_node_attrs, num_edge_attrs, num_edges = generate_graph(type, output, num_nodes, directed, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, min, max, mini, mino, maxi, maxo)
     
     print "Graph ID = ",graph_id
+    print "Number of edges created = ",num_edges
+    print "Average number of node attributes = ",num_node_attrs
+    print "Average number of edge attributes = ",num_edge_attrs
     print "Took",time.time() - start_time,"seconds to complete."
