@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, time, uuid
+import math, sys, time, uuid
 from random import randint, sample
 
 def output_file(file):
@@ -117,11 +117,36 @@ def undirected_edge(source, num_nodes, num_edges, num_edge_attrs, undirected_nod
         fo.write(edge_str)
     return undirected_node_d, num_edges, num_edge_attrs
 
-def directed_edge():
-    # !! TODO
-    print "todo"
+def directed_edge(source, num_nodes, num_edges, num_edge_attrs, directed_node_out_d, mino, maxo, edge_attrs_min, edge_attrs_max, fo):
     # !! NOTE hard coded list of labels (relationship types) for edges
     directed_edge_labels = ["knows", "contacted", "manager_of", "works_for"]
+
+    target = source
+    # don't create self-loops
+    while source == target or directed_node_out_d[target] == maxo:
+        target = randint(0, num_nodes-1)
+    
+    # !! TODO check mino, maxo, mini, and maxi
+
+    edge_str = "        <edge id=\""+str(num_nodes+num_edges)+"\" source=\""+str(source)+"\" target=\""+str(target)+"\" label=\""+str(directed_edge_labels[randint(0, len(directed_edge_labels)-1)])+"\">"
+    num_attrs = randint(edge_attrs_min, edge_attrs_max)
+    attrs_list = 0
+    if edge_attrs_max != 0:
+        attrs_list = sample(xrange(edge_attrs_max-1), edge_attrs_max-1)
+    k = 0
+    while k < num_attrs:
+        edge_str += "\n            <data key=\""+str(attrs_list[k-1])+"\">"+str(uuid.uuid4())+"</data>"
+        k += 1 
+        num_edge_attrs += 1
+    if k < 0:
+        edge_str += "\n        "
+    edge_str += "</edge>\n"
+    directed_node_out_d[source] += 1
+    directed_node_out_d[target] += 1
+    num_edges += 1
+    fo.write(edge_str)
+
+    return directed_node_out_d, num_edges, num_edge_attrs
 
 def create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, edge_attrs_min, edge_attrs_max, fo):
     print "Creating edges . . ."
@@ -146,7 +171,7 @@ def create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, ed
                 percent_complete = percentage(i, num_nodes)
                 if prev != percent_complete:
                     prev = percent_complete
-                    print str(percent_complete)+"% finished"
+                    print str(percent_complete+1)+"% finished"
                 source = i 
 
                 if directed == 0:
@@ -159,7 +184,12 @@ def create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, ed
                 else:
                     # check against mini, mino, maxi, and maxo
                     junk = 1
-
+                    gen_edges = randint(mino, maxo)
+                    j = 0
+                    while j < gen_edges:
+                        if directed_node_out_d[source] < maxo:
+                            directed_node_out_d, num_edges, num_edge_attrs = directed_edge(source, num_nodes, num_edges, num_edge_attrs, directed_node_out_d, mino, maxo, edge_attrs_min, edge_attrs_max, fo)
+                        j += 1  
                 i += 1
 
     return num_edge_attrs, num_edges
@@ -171,7 +201,7 @@ def close_graph(type, fo):
     fo.write(closer)
     fo.close()
 
-def get_names():
+def get_names(num_nodes):
     first_a = []
     last_a = []
     fname = open('dict/randomNames.csv', 'r')
@@ -180,13 +210,19 @@ def get_names():
         first_a.append(name[0])
         last_a.append(name[1])
     fname.close()
+    if num_nodes > 100000000:
+        i = 0
+        while i < math.sqrt(num_nodes-100000000)+1:
+            first_a.append(str(uuid.uuid4()))
+            last_a.append(str(uuid.uuid4()))
+            i += 1
     return first_a, last_a
 
 def generate_graph(type, file, num_nodes, directed, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, min, max, mini, mino, maxi, maxo):
     fo = output_file(file)
     node_attrs_a, edge_attrs_a = header(type, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, fo)
     graph_id = is_directed(type, directed, fo)
-    first_a, last_a = get_names()
+    first_a, last_a = get_names(num_nodes)
     
     num_node_attrs = 0
     i = 0
@@ -197,7 +233,7 @@ def generate_graph(type, file, num_nodes, directed, node_attrs_min, node_attrs_m
         percent_complete = percentage(i, num_nodes)
         if percent_complete % 10 == 0 and prev != percent_complete:
             prev = percent_complete
-            print str(percent_complete)+"% finished"
+            print str(percent_complete+1)+"% finished"
         i += 1
 
     num_edge_attrs, num_edges = create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, edge_attrs_min, edge_attrs_max, fo)
