@@ -124,6 +124,7 @@ def directed_edge():
     directed_edge_labels = ["knows", "contacted", "manager_of", "works_for"]
 
 def create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, edge_attrs_min, edge_attrs_max, fo):
+    print "Creating edges . . ."
     undirected_node_d = {}
     directed_node_in_d = {}
     directed_node_out_d = {}
@@ -140,7 +141,12 @@ def create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, ed
     if type == "graphml":
         if num_nodes > 1:
             i = 0
+            prev = -1
             while i < num_nodes:
+                percent_complete = percentage(i, num_nodes)
+                if percent_complete % 10 == 0 and prev != percent_complete:
+                    prev = percent_complete
+                    print str(percent_complete)+"% finished"
                 source = i 
 
                 if directed == 0:
@@ -149,10 +155,7 @@ def create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, ed
                     while j < gen_edges:
                         if undirected_node_d[source] < max: 
                             undirected_node_d, num_edges, num_edge_attrs = undirected_edge(source, num_nodes, num_edges, num_edge_attrs, undirected_node_d, min, max, edge_attrs_min, edge_attrs_max, fo)
-                        else:
-                            undirected_node_d, num_edges, num_edge_attrs = undirected_edge(source, num_nodes, num_edges, num_edge_attrs, undirected_node_d, min, max, edge_attrs_min, edge_attrs_max, fo)
                         j += 1
-                        print j
                 else:
                     # check against mini, mino, maxi, and maxo
                     junk = 1
@@ -186,13 +189,24 @@ def generate_graph(type, file, num_nodes, directed, node_attrs_min, node_attrs_m
     first_a, last_a = get_names()
     
     num_node_attrs = 0
+    i = 0
+    print "Creating nodes . . ."
+    prev = -1
     for node in range(num_nodes):
         num_node_attrs = create_node(type, node, node_attrs_min, node_attrs_max, num_node_attrs, first_a, last_a, fo)
+        percent_complete = percentage(i, num_nodes)
+        if percent_complete % 10 == 0 and prev != percent_complete:
+            prev = percent_complete
+            print str(percent_complete)+"% finished"
+        i += 1
 
     num_edge_attrs, num_edges = create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, edge_attrs_min, edge_attrs_max, fo)
 
     close_graph(type, fo)
     return graph_id, num_node_attrs, num_edge_attrs, num_edges
+
+def percentage(part, whole):
+    return int(100 * float(part)/float(whole))
 
 def print_help():
     print "\n-n \t<num of nodes> (default is 1000, must be between 1 and 100,000,000)\n"
