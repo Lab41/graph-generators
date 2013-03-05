@@ -48,12 +48,6 @@ def is_directed(type, directed, fo):
 
     return graph_id
 
-
-# !! NOTE
-# create dictionaries of ids of nodes to keep track of how many degrees have been put on a particular node
-# output something that tells the average degree of each node
-
-
 def create_node(type, node, node_attrs_min, node_attrs_max, num_node_attrs, first_a, last_a, fo):
     if type == "graphml":
         node_str = "        <node id=\""+str(node)+"\">\n"
