@@ -171,7 +171,7 @@ def create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, ed
                 percent_complete = percentage(i, num_nodes)
                 if prev != percent_complete:
                     prev = percent_complete
-                    print str(percent_complete+1)+"% finished"
+                    print str(percent_complete)+"% finished"
                 source = i 
 
                 if directed == 0:
@@ -233,7 +233,7 @@ def generate_graph(type, file, num_nodes, directed, node_attrs_min, node_attrs_m
         percent_complete = percentage(i, num_nodes)
         if percent_complete % 10 == 0 and prev != percent_complete:
             prev = percent_complete
-            print str(percent_complete+1)+"% finished"
+            print str(percent_complete)+"% finished"
         i += 1
 
     num_edge_attrs, num_edges = create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, edge_attrs_min, edge_attrs_max, fo)
