@@ -245,7 +245,7 @@ def percentage(part, whole):
     return int(100 * float(part)/float(whole))
 
 def print_help():
-    print "\n-n \t<num of nodes> (default is 1000, must be between 1 and 100,000,000)\n"
+    print "\n-n \t<num of nodes> (default is 1000, must be greater than 0)\n"
     print "-max \t<max degree of nodes> (only used with undirected, default is 10)\n"
     print "-min \t<min degree of nodes> (only used with undirected, default is 1)\n"
     print "-maxi \t<max in degree of nodes> (only used with directed flag, default is 10)\n"
@@ -257,9 +257,10 @@ def print_help():
     print "-minea \t<min num of edge attributes> (default is 0)\n"
     print "-maxea \t<max num of edge attributes> (default is 0)\n"
     print "-d \t(directed, undirected by default)\n"
-    print "-t \t<output type> (graphml by default, options include gml and graphson)\n"
+    print "-t* \t<output type> (graphml by default, options include gml and graphson)\n"
     print "-o \t<path to output file> (default is 'graph')\n"
     print "-h \thelp\n"
+    print "* only graphml has been implemented so far\n"
     sys.exit(0)
     
 def check_directed(directed, arg, args, i, flag):
