@@ -48,7 +48,7 @@ def is_directed(type, directed, fo):
 
     return graph_id
 
-def create_node(type, node, node_attrs_min, node_attrs_max, num_node_attrs, first_a, last_a, fo):
+def create_node(type, node, num_nodes, node_attrs_min, node_attrs_max, num_node_attrs, first_a, last_a, fo):
     if type == "graphml":
         node_str = "        <node id=\""+str(node)+"\">\n"
         num_attrs = randint(node_attrs_min, node_attrs_max)
@@ -59,12 +59,20 @@ def create_node(type, node, node_attrs_min, node_attrs_max, num_node_attrs, firs
         while i < num_attrs:
             if i == 0:
                 index = str(node)
-                if node < 10000:
-                    val1 = 0
-                    val2 = node
+                if num_nodes < 100000001: 
+                    if node < 10000:
+                        val1 = 0
+                        val2 = node
+                    else:
+                        val1 = int(index[:-4])
+                        val2 = int(index[-4:])
                 else:
-                    val1 = int(index[:-4])
-                    val2 = int(index[-4:])
+                    if node < 100000:
+                        val1 = 0
+                        val2 = node
+                    else:
+                        val1 = int(index[:-5])
+                        val2 = int(index[-5:])
                 node_str += "            <data key=\"name\">"+first_a[val1]+" "+last_a[val2]+"</data>\n"
                 num_node_attrs += 1
             else:
@@ -158,9 +166,11 @@ def create_edges(type, num_nodes, directed, min, max, mini, mino, maxi, maxo, ed
 
     i = 0
     while i < num_nodes:
-        undirected_node_d[i] = 0
-        directed_node_in_d[i] = 0
-        directed_node_out_d[i] = 0
+        if directed == 1:
+            #directed_node_in_d[i] = 0
+            directed_node_out_d[i] = 0
+        else:
+            undirected_node_d[i] = 0
         i += 1
 
     if type == "graphml":
@@ -212,7 +222,7 @@ def get_names(num_nodes):
     fname.close()
     if num_nodes > 100000000:
         i = 0
-        while i < math.sqrt(num_nodes-100000000)+1:
+        while i < 90000:
             first_a.append(str(uuid.uuid4()))
             last_a.append(str(uuid.uuid4()))
             i += 1
@@ -229,7 +239,7 @@ def generate_graph(type, file, num_nodes, directed, node_attrs_min, node_attrs_m
     print "Creating nodes . . ."
     prev = -1
     for node in range(num_nodes):
-        num_node_attrs = create_node(type, node, node_attrs_min, node_attrs_max, num_node_attrs, first_a, last_a, fo)
+        num_node_attrs = create_node(type, node, num_nodes, node_attrs_min, node_attrs_max, num_node_attrs, first_a, last_a, fo)
         percent_complete = percentage(i, num_nodes)
         if percent_complete % 10 == 0 and prev != percent_complete:
             prev = percent_complete
