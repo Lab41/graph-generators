@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
-import math, sys, time, uuid
+import json, math, sys, time, uuid
 from random import randint, sample
 
 def output_file(file):
     fo = open(file, 'w')
     return fo
 
-def create_node(node, in_dict, out_dict, num_nodes, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, num_node_attrs, num_edge_attrs, num_edges, mini, mino, maxi, maxo, fo):
+def create_node(node, in_dict, out_dict, in_dict_attrs, out_dict_attrs, num_nodes, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, num_node_attrs, num_edge_attrs, num_edges, mini, mino, maxi, maxo, fo):
     num_attrs = randint(node_attrs_min, node_attrs_max)
     attrs_list = 0
     if node_attrs_max != 0:
@@ -24,69 +24,82 @@ def create_node(node, in_dict, out_dict, num_nodes, node_attrs_min, node_attrs_m
             node_str += ",\"type"+str(attrs_list[i-1])+"\":\""+str(uuid.uuid1())+"\""
         num_node_attrs += 1
         i += 1
-            
-    # print length of in and out dictionaries
-
-    # check if vertex is in out dictionary or in dictionary
-
-    # delete vertex from in and out dictionaries if it exists
 
     # create the in edges
-    node_str, num_edges, num_edge_attrs, out_dict = add_edges("in", "out", out_dict, node_str, node, num_nodes, num_edges, num_edge_attrs, edge_attrs_min, edge_attrs_max)
+    node_str, num_edges, num_edge_attrs, out_dict, out_dict_attrs, in_dict, in_dict_attrs = add_edges("in", "out", out_dict, out_dict_attrs, in_dict, in_dict_attrs, node_str, node, num_nodes, num_edges, num_edge_attrs, edge_attrs_min, edge_attrs_max)
     # create the out edges
-    node_str, num_edges, num_edge_attrs, in_dict = add_edges("out", "in", in_dict, node_str, node, num_nodes, num_edges, num_edge_attrs, edge_attrs_min, edge_attrs_max)
+    node_str, num_edges, num_edge_attrs, in_dict, in_dict_attrs, out_dict, out_dict_attrs = add_edges("out", "in", in_dict, in_dict_attrs, out_dict, out_dict_attrs, node_str, node, num_nodes, num_edges, num_edge_attrs, edge_attrs_min, edge_attrs_max)
 
     node_str += "}\n"
     fo.write(node_str)
-    return num_node_attrs, num_edge_attrs, num_edges, in_dict, out_dict
+    return num_node_attrs, num_edge_attrs, num_edges, in_dict, out_dict, in_dict_attrs, out_dict_attrs
 
-def add_edges(direction1, direction2, dictionary, node_str, node, num_nodes, num_edges, num_edge_attrs, edge_attrs_min, edge_attrs_max):
+def add_edges(direction1, direction2, dict, dict_attrs, dict2, dict_attrs2,  node_str, node, num_nodes, num_edges, num_edge_attrs, edge_attrs_min, edge_attrs_max):
     # !! NOTE hard coded list of labels (relationship types) for edges
     directed_edge_labels = ["knows", "contacted", "manager_of", "works_for"]
 
     i = flag = 0
-    edges = randint(mini,maxi)
-    if node in dictionary:
-        # !! add items in dict to node_str
-        # !! del object in dict
-        i += len(dictionary[node])
+    edges = randint(mini,maxi/2)
+    if node in dict2:
+        node_str += ",\"_"+direction1+"E\":["
+        node_str += json.dumps(dict2[node])
+        node_str = node_str[:-1]
+        node_str += dict_attrs2[node]
+        node_str += "}"
+        i += len(dict2[node])
+        if i >= edges:
+            node_str += "]"
+        del dict2[node]
+        del dict_attrs2[node]
     while i < edges:
         flag = 1
         node_str += ","
         if i == 0:
             node_str += "\"_"+direction1+"E\":["
         num_attrs = randint(edge_attrs_min, edge_attrs_max)
+        attrs_list = 0
         if edge_attrs_max != 0:
             attrs_list = sample(xrange(edge_attrs_max-1), edge_attrs_max-1)
-        directionV = randint(node,num_nodes-1)
-        node_str += "{\"_label\":\""+str(directed_edge_labels[randint(0, len(directed_edge_labels)-1)])+"\",\"_id\":"+str(num_nodes+num_edges)+",\"_"+direction2+"V\":"+str(directionV)
+        directionV = node
+        while directionV == node:
+            directionV = randint(0,num_nodes-1)
+        random_label = str(directed_edge_labels[randint(0, len(directed_edge_labels)-1)])
+        node_str += "{\"_label\":\""+random_label+"\",\"_id\":"+str(num_nodes+num_edges)+",\"_"+direction2+"V\":"+str(directionV)
         j = 0
+        attr_str = ""
         while j < num_attrs:
-            node_str += ",\"type-"+attrs_list[j-1]+"\":\""+str(uuid.uuid1())+"\""
+            if j == 0:
+                attr_str += ",\"type-"+str(attrs_list[j-1])+"\":\""+str(uuid.uuid1())+"\""
+            else:
+                attr_str += ",\"type-"+str(attrs_list[j-1]+1)+"\":\""+str(uuid.uuid1())+"\""
             num_edge_attrs += 1
             j += 1
+        node_str += attr_str
         node_str += "}"
-        
-        # !! add to dictionary new vertices with edges
+        num_edges += 1
+        dV = "_"+direction1+"V"
+        dict[directionV] = {"_label":random_label,"_id":str(num_nodes+num_edges),dV:node}
+        dict_attrs[directionV] = attr_str
 
         num_edges += 1
         i += 1
     if flag == 1:
         node_str += "]"
-    return node_str, num_edges, num_edge_attrs,  dictionary
-
+    return node_str, num_edges, num_edge_attrs, dict, dict_attrs, dict2, dict_attrs2
 
 def generate_graph(file, num_nodes, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, mini, mino, maxi, maxo):
     fo = output_file(file)
     
     in_dict = {}
     out_dict = {}
+    in_dict_attrs = {}
+    out_dict_attrs = {}
     num_node_attrs = num_edge_attrs = num_edges = 0
     i = 0
     print "Creating nodes . . ."
     prev = -1
     for node in range(num_nodes):
-        num_node_attrs, num_edge_attrs, num_edges, in_dict, out_dict = create_node(node, in_dict, out_dict, num_nodes, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, num_node_attrs, num_edge_attrs, num_edges, mini, mino, maxi, maxo, fo)
+        num_node_attrs, num_edge_attrs, num_edges, in_dict, out_dict, in_dict_attrs, out_dict_attrs = create_node(node, in_dict, out_dict, in_dict_attrs, out_dict_attrs, num_nodes, node_attrs_min, node_attrs_max, edge_attrs_min, edge_attrs_max, num_node_attrs, num_edge_attrs, num_edges, mini, mino, maxi, maxo, fo)
         percent_complete = percentage(i, num_nodes)
         if percent_complete % 10 == 0 and prev != percent_complete:
             prev = percent_complete
