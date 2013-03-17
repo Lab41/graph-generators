@@ -60,9 +60,11 @@ def add_edges(direction1, direction2, dict, dict_attrs, dict2, dict_attrs2,  nod
         attrs_list = 0
         if edge_attrs_max != 0:
             attrs_list = sample(xrange(edge_attrs_max-1), edge_attrs_max-1)
-        directionV = node
-        while directionV == node:
-            directionV = randint(0,num_nodes-1)
+        # !! TODO next three lines need to be fixed
+        #directionV = node
+        #while directionV == node:
+        #    directionV = randint(0,num_nodes-1)
+        directionV = randint(node+1,num_nodes-1)
         random_label = str(directed_edge_labels[randint(0, len(directed_edge_labels)-1)])
         node_str += "{\"_label\":\""+random_label+"\",\"_id\":"+str(num_nodes+num_edges)+",\"_"+direction2+"V\":"+str(directionV)
         j = 0
