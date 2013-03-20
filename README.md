@@ -14,10 +14,24 @@ https://github.com/tinkerpop/blueprints/wiki/GML-Reader-and-Writer-Library
 =================
 parameters:
 
-number of nodes
+-n               <num of nodes> (default is 1000, must be greater than 0)
 
-max in/out degree of nodes
+-min/max         <min/max degree of nodes> (only used with undirected, default is 1/10)
 
-min in/out degree of nodes
+-mini/maxi       <min/max in degree of nodes> (only used with directed flag, default is 1/10)
 
-directed/undirected
+-mino/maxo       <max/max out degree of nodes> (only used with directed flag, default is 1/10)
+
+-minna/maxna     <min/max num of node attributes> (default is 2, must be at least 1)
+
+-minea/maxea     <min/max num of edge attributes> (default is 0)
+
+-d               (directed, undirected by default)
+
+-t*              <output type> (graphml by default, options include gml and graphson)
+
+-o               <path to output file> (default is 'graph')
+
+-h               help
+
+* only graphml and graphson have been implemented so far
