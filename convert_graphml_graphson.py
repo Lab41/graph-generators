@@ -2,69 +2,109 @@
 
 import json, os, sys, time
 
-def convert(i_file, fi, fo):
+def is_directed(i_file):
     cmd = 'grep -m 1 "edgedefault" '+i_file
-    print cmd
     dir_line = os.popen(cmd).read()
     dir_array = dir_line.split("\"")
     directed = dir_array[3]
-    print directed
+    return 1 if directed == "directed" else 0
 
-    # !! TODO split file into nodes and edges
+def edges(id, i_file):
+    directed = is_directed(i_file)
 
+    # sed -n '52{p;q}' file
+
+    # !! TODO get edges for the node with id
+    in_array = []
+    out_array = []
+
+    return in_array, out_array
+
+def convert(i_file, n_file, e_file, fo):
+    n_fi = open(n_file, 'r')
+    e_fi = open(e_file, 'r')
+
+    for line in n_fi:
+        line = line.strip()
+        if line != "":
+            node = eval(line)
+            id = node["_id"]
+
+            str = json.dumps(node)
+            in_array, out_array = edges(id, i_file)
+
+    n_fi.close()
+    e_fi.close()
+    fo.close()
+
+def field_split(n, field):
+    field_a = n.split(field+"=\"")
+    field_a = field_a[1].split("\"")
+    field = field_a[0]
+    return field
+
+def parse(n, type, fi):
+    obj = {}
+    if type == "node":
+        id_a = n.split(type+" id=\"")
+        id_a = id_a[1].split("\">")
+        obj["_id"] = id_a[0]
+        obj["_inE"] = []
+        obj["_outE"] = []
+    else:
+        obj["_id"] = field_split(n, "id")
+        obj["label"] = field_split(n, "label")
+        obj["source"] = field_split(n, "source")
+        obj["target"] = field_split(n, "target")
+        
+    types = {}
+    type_a = n.split("data key=\"")
+    for type in type_a:
+        if "</data>" in type:
+            t_a = type.split("</data>")
+            t_a = t_a[0].split("\">")
+            types[t_a[0]] = t_a[1]
+
+    for type in types:
+        obj[type] = types[type]
+
+    str = json.dumps(obj)
+    fi.write(str+"\n")
+    return "" 
+    
+def split(i_file, o_file, fi, fo, n_fi, e_fi):
     line = 1
     n = ""
     while line:
         line = fi.readline()
         n += line
+        if "</edge>" in line:
+            n = parse(n, "edge", e_fi)
         if "</node>" in line:
-            print n
-            id_a = n.split("node id=\"")
-            id_a = id_a[1].split("\">")
-            id = id_a[0]
-            node = {}
-
-            node["_id"] = id
-
-            types = {}
-            type_a = n.split("data key=\"")
-            for type in type_a:
-                if "</data>" in type:
-                    t_a = type.split("</data>")
-                    t_a = t_a[0].split("\">")
-                    types[t_a[0]] = t_a[1]
-
-            for type in types:
-                node[type] = types[type]
-
-            # !! TODO inArray, outArray
-            # in and out are arrays of dictionaries of the edges and their properties
-            #node["_inE"] = inArray
-            #node["_outE"] = outArray
-
-            str = json.dumps(node)
-            #fo.write(str)
-
-            print str
-            n = ""
+            n = parse(n, "node", n_fi)
 
     fi.close()
-    fi.close()
+    n_fi.close()
+    e_fi.close()
 
-def file_handlers(i_file, o_file):
+def file_handlers(i_file, o_file, n_file, e_file):
     fi = open(i_file, 'r')
     fo = open(o_file, 'w')
-    return fi, fo
+    n_fi = open(n_file, 'w')
+    e_fi = open(e_file, 'w')
+    return fi, fo, n_fi, e_fi
 
 def print_help():
     print "Please specify the following arguments when executing this script: \n"
     print "-i \t<path to input file>" 
     print "-o \t<path to output file> (note: it will overwrite any pre-existing file)\n" 
+    print "-t \t<path for temporary files> (note: these will be deleted after the script is finished, roughly the same size as the original input file though)\n"
     sys.exit(0)
 
 def process_args(args):
     i_file = ""
     o_file = ""
+    t_file = ""
     i = 0
     while i < len(args):
         if args[i] == "-i":
@@ -81,14 +121,24 @@ def process_args(args):
                 f.close()
             except:
                 print_help()
+        elif args[i] == "-t":
+            try:
+                t_file = args[i+1]
+                f = open(t_file+"1", 'w')
+		f.close()
+		t_file = args[i+1]
+		f = open(t_file+"2", 'w')
+                f.close()
+            except:
+                print_help()
         else:
             print_help()
         i += 2
 
-    if i_file == "" or o_file == "":
+    if i_file == "" or o_file == "" or t_file == "":
         print_help()
 
-    return i_file, o_file
+    return i_file, o_file, t_file
 
 def get_args():
     args = []
@@ -98,8 +148,14 @@ def get_args():
 
 if __name__ == "__main__":
     start_time = time.time()
+    print "NOTE: You should have at least 2 times the current input file size available to complete this operation.\n"
     args = get_args()
-    i_file, o_file = process_args(args)
-    fi, fo = file_handlers(i_file, o_file)
-    convert(i_file, fi, fo)
+    i_file, o_file, t_file = process_args(args)
+    fi, fo, n_fi, e_fi = file_handlers(i_file, o_file, t_file+"1", t_file+"2")
+    split(i_file, o_file, fi, fo, n_fi, e_fi)
+    convert(i_file, t_file+"1", t_file+"2", fo)
+    cmd = "rm -rf "+t_file+"1"
+    junk = os.popen(cmd).read()
+    cmd = "rm -rf "+t_file+"2"
+    junk = os.popen(cmd).read()
     print "Took",time.time()-start_time,"seconds to complete."
