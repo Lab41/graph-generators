@@ -1,35 +1,59 @@
 #!/usr/bin/python
 
-import json, sys, time
+import json, os, sys, time
 
-def convert(fi, fo):
-    # !! TODO
-    # for each node
-        node = {}
+def convert(i_file, fi, fo):
+    cmd = 'grep -m 1 "edgedefault" '+i_file
+    print cmd
+    dir_line = os.popen(cmd).read()
+    dir_array = dir_line.split("\"")
+    directed = dir_array[3]
+    print directed
 
-        # !! TOOD id
-        # id is the id of the node
-        node["_id"] = id
+    # !! TODO split file into nodes and edges
 
-        # !! TODO types, value
-        # types is a dictionary of each type of property and its value for this node
-        for type in types:
-            node[type] = types[type]
+    line = 1
+    n = ""
+    while line:
+        line = fi.readline()
+        n += line
+        if "</node>" in line:
+            print n
+            id_a = n.split("node id=\"")
+            id_a = id_a[1].split("\">")
+            id = id_a[0]
+            node = {}
 
-        # !! TODO inArray, outArray
-        # in and out are arrays of dictionaries of the edges and their properties
-        node["_inE"] = inArray
-        node["_outE"] = outArray
+            node["_id"] = id
 
-        str = json.dumps(node)
-        fo.write(str)
+            types = {}
+            type_a = n.split("data key=\"")
+            for type in type_a:
+                if "</data>" in type:
+                    t_a = type.split("</data>")
+                    t_a = t_a[0].split("\">")
+                    types[t_a[0]] = t_a[1]
+
+            for type in types:
+                node[type] = types[type]
+
+            # !! TODO inArray, outArray
+            # in and out are arrays of dictionaries of the edges and their properties
+            #node["_inE"] = inArray
+            #node["_outE"] = outArray
+
+            str = json.dumps(node)
+            #fo.write(str)
+
+            print str
+            n = ""
 
     fi.close()
     fi.close()
 
 def file_handlers(i_file, o_file):
     fi = open(i_file, 'r')
-    fo = open(o)file, 'w')
+    fo = open(o_file, 'w')
     return fi, fo
 
 def print_help():
@@ -77,5 +101,5 @@ if __name__ == "__main__":
     args = get_args()
     i_file, o_file = process_args(args)
     fi, fo = file_handlers(i_file, o_file)
-    convert(fi, fo)
+    convert(i_file, fi, fo)
     print "Took",time.time()-start_time,"seconds to complete."
