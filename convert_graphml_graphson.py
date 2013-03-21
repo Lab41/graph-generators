@@ -9,20 +9,31 @@ def is_directed(i_file):
     directed = dir_array[3]
     return 1 if directed == "directed" else 0
 
-def edges(id, i_file):
-    directed = is_directed(i_file)
+def sort_edges(e_fi, e_file):
+    # !! TODO don't hardcode this number
+    cmd = "split -l 10 "+e_file+" "+e_file
+    junk = os.popen(cmd).read()
+    cmd = "ls -1 "+e_file+"a*"
+    files = os.popen(cmd).read()
+    files = files.split("\n")
 
-    # sed -n '52{p;q}' file
 
-    # !! TODO get edges for the node with id
-    in_array = []
-    out_array = []
-
-    return in_array, out_array
+    for file in files[:-1]:
+        f = open(file, 'r')
+        fs = open(file+"1", 'w')
+        sorted_edges = []
+        for line in f:
+            sorted_edges.append(line)
+        sorted_edges = sorted(sorted_edges)
+        for line in sorted_edges:
+            fs.write(line)
+        f.close()
+        fs.close()
 
 def convert(i_file, n_file, e_file, fo):
     n_fi = open(n_file, 'r')
     e_fi = open(e_file, 'r')
+    sort_edges(e_fi, e_file)
     edge = {}
     for line in n_fi:
         line = line.strip()
@@ -34,18 +45,18 @@ def convert(i_file, n_file, e_file, fo):
                 source = edge["source"]
             out_e = []
             in_e = []
-            print "source: ",source
-            print "id: ",id
             if edge == {}:
                 e_line = e_fi.readline()
-                edge = eval(e_line)
+                e_line = e_line.split(" ", 1)
+                edge = eval(e_line[1])
                 source = edge["source"]
             if source == id:
                 while source == id: 
                     out_e.append(edge)
                     try:
                         e_line = e_fi.readline()
-                        edge = eval(e_line)
+                        e_line = e_line.split(" ", 1)
+                        edge = eval(e_line[1])
                         source = edge["source"]
                     except:
                         source = ""
@@ -67,6 +78,7 @@ def field_split(n, field):
 
 def parse(n, type, fi):
     obj = {}
+    target = ""
     if type == "node":
         id_a = n.split(type+" id=\"")
         id_a = id_a[1].split("\">")
@@ -75,7 +87,8 @@ def parse(n, type, fi):
         obj["_id"] = field_split(n, "id")
         obj["label"] = field_split(n, "label")
         obj["source"] = field_split(n, "source")
-        obj["target"] = field_split(n, "target")
+        target = field_split(n, "target")
+        obj["target"] = target
         
     types = {}
     type_a = n.split("data key=\"")
@@ -89,7 +102,10 @@ def parse(n, type, fi):
         obj[type] = types[type]
 
     str = json.dumps(obj)
-    fi.write(str+"\n")
+    if type == "node":
+        fi.write(str+"\n")
+    else:
+        fi.write(target+" "+str+"\n")
     return "" 
     
 def split(i_file, o_file, fi, fo, n_fi, e_fi):
@@ -176,6 +192,6 @@ if __name__ == "__main__":
     convert(i_file, t_file+"1", t_file+"2", fo)
     cmd = "rm -rf "+t_file+"1"
     junk = os.popen(cmd).read()
-    cmd = "rm -rf "+t_file+"2"
+    cmd = "rm -rf "+t_file+"2*"
     junk = os.popen(cmd).read()
     print "Took",time.time()-start_time,"seconds to complete."
