@@ -23,15 +23,37 @@ def edges(id, i_file):
 def convert(i_file, n_file, e_file, fo):
     n_fi = open(n_file, 'r')
     e_fi = open(e_file, 'r')
-
+    edge = {}
     for line in n_fi:
         line = line.strip()
         if line != "":
             node = eval(line)
             id = node["_id"]
-
+            source = ""
+            if "source" in edge:
+                source = edge["source"]
+            out_e = []
+            in_e = []
+            print "source: ",source
+            print "id: ",id
+            if edge == {}:
+                e_line = e_fi.readline()
+                edge = eval(e_line)
+                source = edge["source"]
+            if source == id:
+                while source == id: 
+                    out_e.append(edge)
+                    try:
+                        e_line = e_fi.readline()
+                        edge = eval(e_line)
+                        source = edge["source"]
+                    except:
+                        source = ""
+                
+            node["_outE"] = out_e
+            node["_inE"] = in_e
             str = json.dumps(node)
-            in_array, out_array = edges(id, i_file)
+            fo.write(str+"\n")
 
     n_fi.close()
     e_fi.close()
@@ -49,8 +71,6 @@ def parse(n, type, fi):
         id_a = n.split(type+" id=\"")
         id_a = id_a[1].split("\">")
         obj["_id"] = id_a[0]
-        obj["_inE"] = []
-        obj["_outE"] = []
     else:
         obj["_id"] = field_split(n, "id")
         obj["label"] = field_split(n, "label")
