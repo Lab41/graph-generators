@@ -2,6 +2,7 @@
 
 import json, os, sys, time
 
+# !! TODO need to implement this
 def is_directed(i_file):
     cmd = 'grep -m 1 "edgedefault" '+i_file
     dir_line = os.popen(cmd).read()
@@ -9,11 +10,10 @@ def is_directed(i_file):
     directed = dir_array[3]
     return 1 if directed == "directed" else 0
 
-def sort_edges(e_fi, e_file):
-    # !! TODO don't hardcode this number
-    cmd = "split -l 10 "+e_file+" "+e_file
+def sort_edges(e_fi, e_file, splits):
+    cmd = "split -l "+splits+" "+e_file+" "+e_file+"-"
     junk = os.popen(cmd).read()
-    cmd = "ls -1 "+e_file+"a*"
+    cmd = "ls -1 "+e_file+"-*"
     files = os.popen(cmd).read()
     files = files.split("\n")
 
@@ -28,38 +28,71 @@ def sort_edges(e_fi, e_file):
         for line in sorted_edges:
             fs.write(line)
         f.close()
+        cmd = "rm -rf "+file
+        junk = os.popen(cmd).read()
         fs.close()
 
-def convert(i_file, n_file, e_file, fo):
+    cmd = "ls -1 "+e_file+"-*"
+    files = os.popen(cmd).read()
+    files = files.split("\n")
+    file_str = ""
+    for file in files[:-1]:
+        file_str += " "+file
+    cmd = "sort -m -o "+e_file+"-sorted"+file_str
+    junk = os.popen(cmd).read()
+
+def convert(i_file, n_file, e_file, fo, splits):
     n_fi = open(n_file, 'r')
     e_fi = open(e_file, 'r')
-    sort_edges(e_fi, e_file)
-    edge = {}
+    sort_edges(e_fi, e_file, splits)
+    se_fi = open(e_file+"-sorted", 'r')
+    out_edge = {}
+    in_edge = {}
     for line in n_fi:
         line = line.strip()
         if line != "":
             node = eval(line)
             id = node["_id"]
             source = ""
-            if "source" in edge:
-                source = edge["source"]
+            target = ""
+            if "_outV" in out_edge:
+                source = out_edge["_outV"]
+            if "_inV" in in_edge:
+                target = in_edge["_inV"]
             out_e = []
             in_e = []
-            if edge == {}:
+            if out_edge == {}:
                 e_line = e_fi.readline()
                 e_line = e_line.split(" ", 1)
-                edge = eval(e_line[1])
-                source = edge["source"]
+                out_edge = eval(e_line[1])
+                source = out_edge["_outV"]
             if source == id:
                 while source == id: 
-                    out_e.append(edge)
+                    del out_edge["_outV"]
+                    out_e.append(out_edge)
                     try:
                         e_line = e_fi.readline()
                         e_line = e_line.split(" ", 1)
-                        edge = eval(e_line[1])
-                        source = edge["source"]
+                        out_edge = eval(e_line[1])
+                        source = out_edge["_outV"]
                     except:
                         source = ""
+            if in_edge == {}:
+                se_line = se_fi.readline()
+                se_line = se_line.split(" ", 1)
+                in_edge = eval(se_line[1])
+                target = in_edge["_inV"]
+            if target == id:
+                while target == id: 
+                    del in_edge["_inV"]
+                    in_e.append(in_edge)
+                    try:
+                        se_line = se_fi.readline()
+                        se_line = se_line.split(" ", 1)
+                        in_edge = eval(se_line[1])
+                        target = in_edge["_inV"]
+                    except:
+                        target = ""
                 
             node["_outE"] = out_e
             node["_inE"] = in_e
@@ -68,6 +101,7 @@ def convert(i_file, n_file, e_file, fo):
 
     n_fi.close()
     e_fi.close()
+    se_fi.close()
     fo.close()
 
 def field_split(n, field):
@@ -85,10 +119,10 @@ def parse(n, type, fi):
         obj["_id"] = id_a[0]
     else:
         obj["_id"] = field_split(n, "id")
-        obj["label"] = field_split(n, "label")
-        obj["source"] = field_split(n, "source")
+        obj["_label"] = field_split(n, "label")
+        obj["_outV"] = field_split(n, "source")
         target = field_split(n, "target")
-        obj["target"] = target
+        obj["_inV"] = target
         
     types = {}
     type_a = n.split("data key=\"")
@@ -132,8 +166,9 @@ def file_handlers(i_file, o_file, n_file, e_file):
 
 def print_help():
     print "Please specify the following arguments when executing this script: \n"
+    print "-s \t<number of splits> (default is 10)"
     print "-i \t<path to input file>" 
-    print "-o \t<path to output file> (note: it will overwrite any pre-existing file)\n" 
+    print "-o \t<path to output file> (note: it will overwrite any pre-existing file)" 
     print "-t \t<path for temporary files> (note: these will be deleted after the script is finished, roughly the same size as the original input file though)\n"
     sys.exit(0)
 
@@ -141,6 +176,7 @@ def process_args(args):
     i_file = ""
     o_file = ""
     t_file = ""
+    splits = "10"
     i = 0
     while i < len(args):
         if args[i] == "-i":
@@ -167,6 +203,8 @@ def process_args(args):
                 f.close()
             except:
                 print_help()
+        elif args[i] == "-s":
+            splits = args[i+1]
         else:
             print_help()
         i += 2
@@ -174,7 +212,7 @@ def process_args(args):
     if i_file == "" or o_file == "" or t_file == "":
         print_help()
 
-    return i_file, o_file, t_file
+    return i_file, o_file, t_file, splits
 
 def get_args():
     args = []
@@ -186,10 +224,10 @@ if __name__ == "__main__":
     start_time = time.time()
     print "NOTE: You should have at least 2 times the current input file size available to complete this operation.\n"
     args = get_args()
-    i_file, o_file, t_file = process_args(args)
+    i_file, o_file, t_file, splits = process_args(args)
     fi, fo, n_fi, e_fi = file_handlers(i_file, o_file, t_file+"1", t_file+"2")
     split(i_file, o_file, fi, fo, n_fi, e_fi)
-    convert(i_file, t_file+"1", t_file+"2", fo)
+    convert(i_file, t_file+"1", t_file+"2", fo, splits)
     cmd = "rm -rf "+t_file+"1"
     junk = os.popen(cmd).read()
     cmd = "rm -rf "+t_file+"2*"
