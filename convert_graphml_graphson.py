@@ -11,12 +11,11 @@ def is_directed(i_file):
     return 1 if directed == "directed" else 0
 
 def sort_edges(e_fi, e_file, splits):
-    cmd = "split -l "+splits+" "+e_file+" "+e_file+"-"
+    cmd = "split -a 4 -l "+splits+" "+e_file+" "+e_file+"-"
     junk = os.popen(cmd).read()
     cmd = "ls -1 "+e_file+"-*"
     files = os.popen(cmd).read()
     files = files.split("\n")
-
 
     for file in files[:-1]:
         f = open(file, 'r')
@@ -38,7 +37,8 @@ def sort_edges(e_fi, e_file, splits):
     file_str = ""
     for file in files[:-1]:
         file_str += " "+file
-    cmd = "sort -m -o "+e_file+"-sorted"+file_str
+    # !! TODO don't hardcode parallel or tmp dir.
+    cmd = "sort --parallel=2 -T /graph-data3 -m -o "+e_file+"-sorted"+file_str
     junk = os.popen(cmd).read()
 
 def convert(i_file, n_file, e_file, fo, splits):
