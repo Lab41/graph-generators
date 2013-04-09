@@ -177,13 +177,25 @@ def process_args(args):
         elif args[i] == "-maxea":
             edge_attrs_max = check_attrs(edge_attrs_max, args, i, edge_attrs_min)
         elif args[i] == "-mini":
-            mini = args[i+1]
+            try:
+                mini = int(args[i+1])
+            except:
+                print_help()
         elif args[i] == "-mino":
-            mino = args[i+1]
+            try:
+                mino = int(args[i+1])
+            except:
+                print_help()
         elif args[i] == "-maxi":
-            maxi = args[i+1]
+            try:
+                maxi = int(args[i+1])
+            except:
+                print_help()
         elif args[i] == "-maxo":
-            maxo = args[i+1]
+            try:
+                maxo = int(args[i+1])
+            except:
+                print_help()
         elif args[i] == "-c":
             try:
                 clusters = int(args[i+1])
