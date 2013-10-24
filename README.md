@@ -24,3 +24,7 @@ parameters:
     -h               help
     
     * only graphml and graphson have been implemented so far
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/Lab41/graph-generators/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
